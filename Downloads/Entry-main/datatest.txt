@@ -1,0 +1,8 @@
+BODY='{"name":"Apple Tree", "level":"preschool", "contact":"Jane Smith", "phone":"501-607-1123", "email":"jsmith@xyz.edu.bz", "website":"http://xyz.edu.bz", "address":"17 Peach street", "mode":["online", "face-to-face"]}'
+
+
+BODY='{"name":"XYZ", "level":"preschool", "contact":"Jane Smith", "phone":"501-607-1123", "email":"jsmith@xyz.edu.bz", "address":"17 Peach street", "mode":["online", "face-to-face"]}'
+
+BODY='{"name":"XYZ", "level":"preschool", "contact":"Jane Smith", "phone":"501-607-1123", "address":"17 Peach street", "mode":["online", "face-to-face"]}'
+
+BODY='{"name":"XYZ", "level":"preschool", "contact":"Jane Smith", "phone":"501-607-1123", "email":null, "website":null, "address":"17 Peach street", "mode":["online", "face-to-face"]}'

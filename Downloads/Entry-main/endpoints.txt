@@ -1,0 +1,7 @@
+Method	URL Pattern	   Handler		    Action
+GET	    /v1/healthcheck    healthcheckHandler	    Show application information
+GET  	/v1/schools	       listSchoolsHandler       Show the details of all schools
+POST 	/v1/schools	       createSchoolHandler	    Create a new school
+GET 	/v1/schools/:id    showSchoolHandler	    Show details of a specific school
+PUT 	/v1/schools/:id    updateSchoolHandler	    Update details of a specific school
+DELETE  /v1/schools/:id    deleteSchoolHandler	    Delete a specific school
