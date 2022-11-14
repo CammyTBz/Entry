@@ -166,6 +166,7 @@ func (m UserModel) Update(user *User) error {
 		user.Name,
 		user.Email,
 		user.Password.hash,
+		user.ID,
 		user.Activated,
 	}
 
