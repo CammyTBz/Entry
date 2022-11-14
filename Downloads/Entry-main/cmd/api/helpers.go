@@ -147,3 +147,19 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	}
 	return intValue
 }
+
+// background accepts a function as its parameter
+func (app *application) background(fn func()) {
+	// increment the waitGroup counter
+	app.wg.Add(1)
+	go func() {
+		defer app.wg.Done()
+		// Recover from panic
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+		fn()
+	}()
+}

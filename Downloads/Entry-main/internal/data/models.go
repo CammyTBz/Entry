@@ -15,11 +15,15 @@ var (
 // A wrapper for our data models
 type Models struct {
 	Entry EntryModel
+	Tokens TokenModel
+	Users UserModel
 }
 
 // NewModels() allows us to create a new Models
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Entry: EntryModel{DB: db},
+		Tokens: TokenModel{DB: db},
+		Users: UserModel{DB: db},
 	}
 }

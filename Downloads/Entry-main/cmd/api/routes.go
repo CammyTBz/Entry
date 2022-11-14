@@ -20,6 +20,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/entries/:id", app.updateEntryHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/entries/:id", app.deleteEntryHandler)
 	// router.HandlerFunc(http.MethodGet, "/v1/stringrandom/:id", app.showRandomString)
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	
-	return app.recoverPanic(router)
+	return app.recoverPanic(app.rateLimit(router))
 }
