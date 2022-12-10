@@ -3,13 +3,17 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
+	"kriol.camerontillett.net/internal/data"
+	"kriol.camerontillett.net/internal/validator"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -78,6 +82,124 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 			mu.Unlock()
 		} // end of enabled conditional
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Authentication
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Add a "Vary: Authorization" header to the response
+		// A note to caches that the response may vary
+		w.Header().Add("Vary", "Authorization")
+		// Retrieve the value of the Authorization header from the request
+		authorizationHeader := r.Header.Get("Authorization")
+		// If no authorization found, then we will create an anonymous user
+		if authorizationHeader == "" {
+			r = app.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Check if the provided Authorization header is in the right format
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+		// Extract the token
+		token := headerParts[1]
+		// Validate the token
+		v := validator.New()
+		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
+			app.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+		// Retrieve details about user
+		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.invalidAuthenticationTokenResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+		// Add the user information to the request context
+		r = app.contextSetUser(r, user)
+		// Call the next handler in the chain
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Check for authenticated user
+func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the user
+		user := app.contextGetUser(r)
+		// Check for anonymous user
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Check for activated user
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the user
+		user := app.contextGetUser(r)
+		// Check if user is activated
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireAuthenticatedUser(fn)
+}
+
+// Check for user account permission
+func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the user
+		user := app.contextGetUser(r)
+		// Get the permission slice for the user
+		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		// Check for the permission
+		if !permissions.Include(code) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		// OK
+		next.ServeHTTP(w, r)
+	})
+	return app.requireActivatedUser(fn)
+}
+
+// Enable CORS
+func (app *application) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Add the "Vary:Origin" headers
+		w.Header().Add("Vary", "Origin")
+		// Get the value of the request's origin's headers
+		origin := r.Header.Get("Origin")
+		// Check if Origin header present
+		if origin != "" {
+			for i := range app.config.cors.trustedOrigins {
+				if origin == app.config.cors.trustedOrigins[i] {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

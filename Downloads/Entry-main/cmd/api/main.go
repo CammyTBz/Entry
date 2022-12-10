@@ -6,9 +6,7 @@ import (
     "context"
     "database/sql"
     "flag"
-    //"fmt"
-    //"log"
-    //"net/http"
+    "strings"
     "os"
     "sync"
     "time"
@@ -51,6 +49,9 @@ type config struct {
 		password string
 		sender   string
 	}
+    cors struct {
+		trustedOrigins []string
+	}
 }
 
 // Define an application struct to hold the dependencies for our HTTP handlers, helpers,
@@ -84,9 +85,15 @@ func main() {
     // These are our flags for the mailer
 	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.mailtrap.io", "SMTP host")
 	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
-	flag.StringVar(&cfg.smtp.username, "smtp-username", "49997fb956ea9a", "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", "a959d5f91a03c5", "SMTP password")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "c0194294876720", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "2d0dd5a84d6aeb", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Transit <no-reply@kriol.camerontillett.net>", "SMTP sender")
+    //Use the flag.Func() function to parse our trusted origins flag from a string to a slice of string
+	flag.Func("cors-trusted-origin", "Trusted CORS origins (space separated)", func(val string) error {
+		cfg.cors.trustedOrigins = strings.Fields(val)
+
+		return nil
+	})
 
     flag.Parse()
 
